@@ -7,7 +7,7 @@ long_description    IO.read(File.join(File.dirname(__FILE__), 'README.rdoc'))
 version             "0.0.1"
 recipe              "modx", "Installs and configures MODX Revolution"
 
-%w{ postfix php apache2 mysql openssl firewall cron }.each do |cb|
+%w{ php apache2 mysql }.each do |cb|
     depends cb
 end
 

@@ -9,23 +9,14 @@
 #
 
 include_recipe %w{apache2 apache2::mod_php5 apache2::mod_rewrite apache2::mod_expires}
-include_recipe %w{php php::module_mysql php::module_gd} # module_* is deprecated, must to be replaced
-# package 'php-mysql' do action :install end
+package 'php5' do action :install end
+package 'php-mysql' do action :install end
+package 'php-gd' do action :install end
 
-# centos - still without centos, only ubuntu
-case node['platform_family']
-when 'rhel', 'fedora'
-    package 'php-dom' do
-        action :install
-    end
-end
-
-# mysql server install
 include_recipe "mysql::server"
 
-# setup mysql grants
-execute "mysql-install-modx-privileges" do
-    command "/usr/bin/mysql -h #{node[:modx][:db][:host]} -u root -p#{node[:mysql][:server_root_password]} < /etc/mysql/modx-grants.sql" # ??
+execute "modx-privileges" do
+    command "/usr/bin/mysql -h #{node[:modx][:setup][:database][:server]} -u root -p#{node[:mysql][:server_root_password]} < /etc/mysql/modx-grants.sql"
     action :nothing
 end
 
@@ -36,24 +27,27 @@ template "/etc/mysql/modx-grants.sql" do
     group "root"
     mode "0600"
     variables(
-        :user => mode[:modx][:db][:user],
-        :pass => mode[:modx][:db][:pass],
-        :name => mode[:modx][:db][:name],
-        :host => mode[:modx][:db][:host]
-    ) # we can simplify this
-    notifies :run, "execute[mysql-install-modx-privileges]", :immediately
+        :user => mode[:modx][:setup][:database][:username],
+        :pass => mode[:modx][:setup][:database][:password],
+        :name => mode[:modx][:setup][:database][:database],
+        :host => mode[:modx][:setup][:database][:server]
+    )
+    notifies :run, "execute[modx-privileges]", :immediately
 end
 
-execute "create #{node[:modx][:db][:name]} database" do
-    command "/usr/bin/mysqladmin -h #{node[:modx][:db][:host]} -u root -p#{node[:mysql][:server_root_password]} create #{node[:modx][:db][:name]}"
-    not_if "mysql -h #{node[:modx][:db][:host]} -u root -p#{node[:mysql][:server_root_password]} --silent --skip-column-names --execute=\"show databases like '#{node[:modx][:db][:database]}'\" | grep #{node[:modx][:db][:name]}"
+execute "create #{node[:modx][:setup][:database][:database]} database" do
+    command "/usr/bin/mysqladmin -h #{node[:modx][:setup][:database][:server]} -u root -p#{node[:mysql][:server_root_password]} create #{node[:modx][:setup][:database][:database]}"
+    not_if "mysql -h #{node[:modx][:setup][:database][:server]} -u root -p#{node[:mysql][:server_root_password]} --silent --skip-column-names --execute=\"show databases like '#{node[:modx][:setup][:database][:database]}'\" | grep #{node[:modx][:setup][:database][:database]}"
 end
 
-# install modx
-execute "download-and-install-modx" do
-    cwd File.dirname(node[:modx][:dir])
-    # command "" // wget ?
-end
+# --------------------
+
+#execute "download-and-install-modx" do
+#    cwd File.dirname(node[:modx][:dir])
+#    # command "" // wget ?
+#end
+
+# --------------------
 
 web_app "modx" do
     template "modx.conf.erb"
