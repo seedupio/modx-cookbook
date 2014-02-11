@@ -3,9 +3,9 @@
 # Cookbook Name:: modx
 # Attributes:: modx
 #
-# December 2013
+# December 2013 - February 2014
 #
-# License text - MIT
+# License - MIT
 #
 
 default[:modx][:dir] = "/var/www/modx"
